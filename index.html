@@ -757,29 +757,11 @@ function renderFlow() {
   const pct = allKeys.length ? Math.round(doneCount/allKeys.length*100) : 0;
   document.getElementById('progressFill').style.width = pct + '%';
 
-  // 文件下載提示橫幅
-  html += `<div style="
-    background: linear-gradient(135deg, #1e3a6e, #2d5a9e);
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 10px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 0.82rem;
-    line-height: 1.6;
-    box-shadow: 0 3px 12px rgba(30,58,110,0.25);
-  ">
-    <span style="font-size:1.4rem;flex-shrink:0;">📂</span>
-    <span>
-      <strong style="font-size:0.88rem;letter-spacing:0.03em;">本精靈各步驟底部均附有範本文件下載連結</strong><br>
-      每個步驟底部的藍色區塊「📎 本步驟相關文件下載」可直接開啟 Google Drive 取用對應範本，請善用。
-    </span>
-  </div>`;
-  
   // 內容
   let html = '';
+
+  // 文件下載提示橫幅
+  html += `<div style="background:linear-gradient(135deg,#1e3a6e,#2d5a9e);color:#fff;padding:12px 20px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:14px;font-size:0.82rem;line-height:1.6;box-shadow:0 3px 12px rgba(30,58,110,0.25);"><span style="font-size:1.4rem;flex-shrink:0;">📂</span><span><strong style="font-size:0.88rem;">本精靈各步驟底部均附有範本文件下載連結</strong><br>每個步驟底部藍色區塊「📎 本步驟相關文件下載」可直接開啟 Google Drive 取用範本。</span></div>`;
 
    // notices
   (p.notices||[]).forEach(n => {
