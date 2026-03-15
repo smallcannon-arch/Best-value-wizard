@@ -779,13 +779,9 @@ function renderFlow() {
   </div>`;
   
   // 內容
-  let html = `<div class="phase-header">
-    <div class="phase-num">步驟 0${currentPhase+1} / 0${currentPhases.length}</div>
-    <div class="phase-title">${p.title}</div>
-    <div class="phase-desc">${p.desc}</div>
-  </div>`;
+  let html = '';
 
-  // notices
+   // notices
   (p.notices||[]).forEach(n => {
     html += `<div class="notice ${n.type}">${n.text}</div>`;
   });
