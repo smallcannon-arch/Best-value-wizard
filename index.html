@@ -1108,8 +1108,17 @@ function showComplete() {
   document.getElementById('completeScreen').classList.add('active');
   document.getElementById('progressFill').style.width = '100%';
 }
+
 function resetAll() {
   selectedRoute = null;
+  currentPhase = 0;
+  checked = {};
+  currentPhases = [];
+  document.getElementById('completeScreen').classList.remove('active');
+  document.getElementById('flowScreen').classList.remove('active');
+  document.getElementById('routeScreen').classList.add('active');
+  document.getElementById('progressFill').style.width = '0%';
+}
 
 // ── 案件管理 ──
 let currentCaseId = null;
@@ -1219,14 +1228,6 @@ async function deleteCase(id) {
   if (casesCache !== null) casesCache = casesCache.filter(c => c.case_id !== id);
   if (currentCaseId === id) currentCaseId = null;
   renderCasePanel();
-}
-  currentPhase = 0;
-  checked = {};
-  currentPhases = [];
-  document.getElementById('completeScreen').classList.remove('active');
-  document.getElementById('flowScreen').classList.remove('active');
-  document.getElementById('routeScreen').classList.add('active');
-  document.getElementById('progressFill').style.width = '0%';
 }
 </script>
 <!-- 案件管理側邊欄 -->
