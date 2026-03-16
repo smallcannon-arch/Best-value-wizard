@@ -229,6 +229,27 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color:
 .complete-icon { font-size: 3rem; margin-bottom: 16px; }
 .complete-title { font-family: 'Noto Serif TC', serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
 .complete-desc { font-size: 0.88rem; color: var(--ink-light); line-height: 1.8; }
+/* ── 案件管理側邊欄 ── */
+.case-panel { position:fixed; top:0; right:0; width:300px; height:100vh; background:#fff; border-left:2px solid var(--border); z-index:200; transform:translateX(100%); transition:transform 0.3s; display:flex; flex-direction:column; }
+.case-panel.open { transform:translateX(0); }
+.case-panel-header { background:var(--ink); color:#fff; padding:14px 16px; font-size:0.88rem; font-weight:700; display:flex; align-items:center; justify-content:space-between; }
+.case-panel-close { background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer; }
+.case-panel-body { flex:1; overflow-y:auto; padding:12px; }
+.case-panel-footer { padding:12px; border-top:1px solid var(--border); }
+.case-item { border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; cursor:pointer; transition:all 0.15s; }
+.case-item:hover { border-color:var(--ink-mid); }
+.case-item-name { font-size:0.85rem; font-weight:700; color:var(--ink); }
+.case-item-meta { font-size:0.72rem; color:var(--ink-light); margin-top:3px; }
+.case-item-actions { display:flex; gap:6px; margin-top:8px; }
+.btn-case { padding:4px 10px; border-radius:5px; font-size:0.75rem; font-weight:700; cursor:pointer; border:1.5px solid; font-family:inherit; }
+.btn-case-load { background:#fff; border-color:var(--info); color:var(--info); }
+.btn-case-del { background:#fff; border-color:#c0392b; color:#c0392b; }
+.case-input { width:100%; border:1.5px solid var(--border); border-radius:6px; padding:8px 10px; font-size:0.85rem; font-family:inherit; margin-bottom:8px; }
+.btn-case-save { width:100%; padding:10px; border-radius:7px; background:var(--green); border:none; color:#fff; font-size:0.85rem; font-weight:700; cursor:pointer; font-family:inherit; }
+.case-panel-toggle { position:fixed; right:0; top:50%; transform:translateY(-50%); background:var(--ink); color:#fff; border:none; border-radius:8px 0 0 8px; padding:14px 8px; font-size:0.75rem; font-weight:700; cursor:pointer; z-index:150; writing-mode:vertical-rl; letter-spacing:0.1em; }
+/* 懸浮儲存按鈕 */
+#floatSaveBtn { display:none; position:fixed; right:72px; bottom:28px; background:var(--green); color:#fff; border:none; border-radius:10px; padding:12px 18px; font-size:0.85rem; font-weight:700; cursor:pointer; z-index:150; font-family:inherit; box-shadow:0 4px 16px rgba(0,0,0,0.2); transition:all 0.2s; }
+#floatSaveBtn:hover { background:#1e6040; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -802,6 +823,7 @@ function startRoute(route) {
     ? '🔵 路線A｜適用最有利標（公開招標）— 評定後直接決標，不議價'
     : '🟣 路線B｜準用最有利標（限制性招標公開評選）— 評選後必須議價';
 
+  document.getElementById('floatSaveBtn').style.display = 'block';
   renderFlow();
 }
 
@@ -1088,6 +1110,116 @@ function showComplete() {
 }
 function resetAll() {
   selectedRoute = null;
+
+// ── 案件管理 ──
+let currentCaseId = null;
+let casesCache = null;
+
+function toggleCasePanel() {
+  const panel = document.getElementById('casePanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    document.getElementById('casePanelBody').innerHTML = '<p style="font-size:0.8rem;color:var(--ink-light);">載入中...</p>';
+    loadAllCases();
+  }
+}
+
+async function loadAllCases() {
+  if (casesCache !== null) { renderCasePanel(); return; }
+  const res = await gasRequest({ action: 'list' });
+  if (res.success) {
+    casesCache = (res.cases || []).filter(c => c.source === 'best-value');
+    renderCasePanel();
+  } else {
+    document.getElementById('casePanelBody').innerHTML = '<p style="font-size:0.8rem;color:#c0392b;">載入失敗</p>';
+  }
+}
+
+function renderCasePanel() {
+  const body = document.getElementById('casePanelBody');
+  if (!casesCache || casesCache.length === 0) {
+    body.innerHTML = '<p style="font-size:0.8rem;color:var(--ink-light);">尚無儲存的案件</p>';
+    return;
+  }
+  body.innerHTML = casesCache.map(c => `
+    <div class="case-item">
+      <div class="case-item-name">${c.name}</div>
+      <div class="case-item-meta">${c.method || ''} ・ ${c.saved_at ? c.saved_at.slice(0,10) : ''}</div>
+      <div class="case-item-actions">
+        <button class="btn-case btn-case-load" onclick="loadCase('${c.case_id}')">載入</button>
+        <button class="btn-case btn-case-del" onclick="deleteCase('${c.case_id}')">刪除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveCase() {
+  if (!currentUser) { alert('請先登入'); return; }
+  const name = document.getElementById('caseNameInput')?.value?.trim();
+  if (!name) { alert('請輸入案件名稱'); return; }
+  const method = selectedRoute ? (selectedRoute === 'A' ? '適用最有利標' : '準用最有利標') : '';
+  const data = { route: selectedRoute, phase: currentPhase, checked };
+  const res = await gasRequest({ action: 'save', case_id: currentCaseId, name, method, data });
+  if (res.success) {
+    currentCaseId = res.case_id;
+    if (casesCache !== null) {
+      const existing = casesCache.findIndex(c => c.case_id === currentCaseId);
+      const newEntry = { case_id: currentCaseId, name, method, saved_at: new Date().toISOString(), source: 'best-value' };
+      if (existing >= 0) casesCache[existing] = newEntry;
+      else casesCache.push(newEntry);
+    }
+    const btn = document.querySelector('.btn-case-save');
+    if (btn) { btn.textContent = '✓ 已儲存'; setTimeout(() => btn.textContent = '💾 儲存目前進度', 2000); }
+    const floatBtn = document.getElementById('floatSaveBtn');
+    if (floatBtn) { floatBtn.textContent = '✓ 已儲存'; setTimeout(() => floatBtn.textContent = '💾 儲存進度', 2000); }
+    renderCasePanel();
+  }
+}
+
+function quickSave() {
+  const panel = document.getElementById('casePanel');
+  if (!panel.classList.contains('open')) panel.classList.add('open');
+  saveCase();
+}
+
+async function loadCase(id) {
+  const res = await gasRequest({ action: 'load', case_id: id });
+  if (res.success) {
+    const d = res.data;
+    if (d.route) {
+      selectedRoute = d.route;
+      currentPhases = d.route === 'A' ? phasesA : phasesB;
+    }
+    if (d.checked) checked = d.checked;
+    if (typeof d.phase === 'number') currentPhase = d.phase;
+    currentCaseId = id;
+    const c = casesCache?.find(c => c.case_id === id);
+    if (c && document.getElementById('caseNameInput')) {
+      document.getElementById('caseNameInput').value = c.name;
+    }
+    document.getElementById('routeScreen').classList.remove('active');
+    document.getElementById('completeScreen').classList.remove('active');
+    document.getElementById('flowScreen').classList.add('active');
+    const ind = document.getElementById('routeIndicator');
+    if (ind) {
+      ind.className = `route-indicator ${selectedRoute}`;
+      ind.innerHTML = selectedRoute === 'A'
+        ? '🔵 路線A｜適用最有利標（公開招標）— 評定後直接決標，不議價'
+        : '🟣 路線B｜準用最有利標（限制性招標公開評選）— 評選後必須議價';
+    }
+    renderFlow();
+    document.getElementById('floatSaveBtn').style.display = 'block';
+    toggleCasePanel();
+  }
+}
+
+async function deleteCase(id) {
+  if (!confirm('確定要刪除這筆案件紀錄嗎？')) return;
+  await gasRequest({ action: 'delete', case_id: id });
+  if (casesCache !== null) casesCache = casesCache.filter(c => c.case_id !== id);
+  if (currentCaseId === id) currentCaseId = null;
+  renderCasePanel();
+}
   currentPhase = 0;
   checked = {};
   currentPhases = [];
@@ -1097,5 +1229,21 @@ function resetAll() {
   document.getElementById('progressFill').style.width = '0%';
 }
 </script>
+<!-- 案件管理側邊欄 -->
+<button class="case-panel-toggle" onclick="toggleCasePanel()">案件管理</button>
+<button id="floatSaveBtn" onclick="quickSave()">💾 儲存進度</button>
+<div class="case-panel" id="casePanel">
+  <div class="case-panel-header">
+    <span>📁 案件管理</span>
+    <button class="case-panel-close" onclick="toggleCasePanel()">✕</button>
+  </div>
+  <div class="case-panel-body" id="casePanelBody">
+    <p style="font-size:0.8rem;color:var(--ink-light);">載入中...</p>
+  </div>
+  <div class="case-panel-footer">
+    <input class="case-input" id="caseNameInput" placeholder="輸入案件名稱（必填）">
+    <button class="btn-case-save" onclick="saveCase()">💾 儲存目前進度</button>
+  </div>
+</div>
 </body>
 </html>
