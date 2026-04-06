@@ -514,7 +514,9 @@ officialLinks:[
         item('確認評選資料（廠商文件、初審意見報告）已備妥','評選委員應在評選前有足夠時間閱讀廠商文件，不得臨時發放。',['doc'],true,'評選前未閱讀廠商文件即評分，評選公正性存疑'),
       ]},
       { label:'開會中', items:[
-        item('出席委員未達委員總額1/2，或出席之專家學者未達2人、或未達出席人數1/3，議案不得提付表決（採購評選委員會組織準則第9條）。',',['law','calc'],true,'不足法定人數仍進行表決，評選結果無效'),
+        item('確認出席人數符合開會門檻（詳見上方出席門檻計算機）',
+             '出席委員未達委員總額1/2，或出席之專家學者未達2人、或未達出席人數1/3，議案不得提付表決（採購評選委員會組織準則第9條）。',
+             ['law','calc'],true,'不足法定人數仍進行表決，評選結果無效'),
         item('各委員依評分表逐項評分並親自簽名','每位委員均應填寫完整評分表，逐項載明評分並簽名，不得空白或代簽。',['doc'],true,'評分表未簽名或有空白，評選紀錄不完整'),
         item('價格評分：考量品質合理性，不得僅比廠商報價高低','評分應考量「該價格相對於廠商所提供品質的合理性」——此為手冊明列之錯誤態樣（伍、八、（七））。報價低不等於價格評分高。',['warn'],true,'僅比報價高低決定價格分數是違法態樣，稽核必查'),
         item('審查意見具體載明各廠商差異性','評選委員對各廠商之評選意見，不得僅寫「符合」、「尚可」，必須具體比較廠商間在各項目上的差異（採購評選作業檢核表重點）。',['doc','warn'],true,'意見流於形式是114年稽核重點'),
@@ -842,7 +844,7 @@ function renderFlow() {
   nav.innerHTML = currentPhases.map((ph, i) => {
     const total = ph.groups.reduce((s,g) => s+g.items.length, 0);
     const done = ph.groups.reduce((s,g) => s+g.items.filter((_,j) => checked[`${ph.id}-${g.label}-${j}`]).length, 0);
-    const isDone = done > 0 && done === total;
+    const isDCase = total > 0 && done === total;
     const isActive = i === currentPhase;
     return `<button class="phase-tab ${isDone?'done':isActive?`active ${route}`:''}\" onclick=\"goPhase(${i})\">0${i+1} ${ph.title}</button>`;
   }).join('');
