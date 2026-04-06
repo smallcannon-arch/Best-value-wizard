@@ -362,7 +362,7 @@ function googleLogin() {
         headers: { Authorization: 'Bearer ' + tokenResponse.access_token }
       });
       const info = await res.json();
-      currentUser = { email: info.email, name: info.name };
+      currentUser = { email: info.email, name: info.name, token: tokenResponse.access_token };
       document.getElementById('loginScreen').style.display = 'none';
     }
   }).requestAccessToken();
