@@ -374,7 +374,12 @@ async function gasRequest(params) {
       method: 'POST',
       body: JSON.stringify({ ...params, email: currentUser?.email, token: currentUser?.token, source: 'best-value' })
     });
-    return await res.json();
+    const data = await res.json();
+    if (data.error === 'Token 驗證失敗') {
+      alert('登入已過期，請重新整理頁面並重新登入。');
+      return { success: false };
+    }
+    return data;
   } catch (e) {
     return { success: false, error: e.toString() };
   }
