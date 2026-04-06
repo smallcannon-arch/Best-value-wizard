@@ -503,7 +503,7 @@ officialLinks:[
   {
     id:'a5', title:'評選會議', desc:'評選委員會依據招標文件所定評選項目，對各廠商進行評分，做出評選結果。本階段為整個流程最核心的環節。',
     notices:[
-      {type:'law', text:'評選委員會開會，出席委員須達委員總額1/2以上，且出席之專家學者須達出席人數之1/3（採購評選委員會組織準則第9條）。'},
+      {type:'law', text:'評選委員會開會，出席委員須達委員總額1/2以上（至少 ⌈N/2⌉ 人），且出席之專家學者須至少2人，並不得少於出席人數之1/3（採購評選委員會組織準則第9條）。'},
       {type:'warn', text:'【關鍵防呆】評分須考量「該價格相對於廠商所提供品質的合理性」，不得僅以廠商間報價高低決定價格項目得分（最有利標錯誤行為態樣伍、八、（七））。'},
       {type:'warn', text:'若不同委員對同一廠商評分有明顯差異，召集人應提交委員會議決或辦理複評，不可逕以「去頭去尾」方式計分（最有利標錯誤行為態樣伍、八、（九））。'},
     ],
@@ -514,7 +514,7 @@ officialLinks:[
         item('確認評選資料（廠商文件、初審意見報告）已備妥','評選委員應在評選前有足夠時間閱讀廠商文件，不得臨時發放。',['doc'],true,'評選前未閱讀廠商文件即評分，評選公正性存疑'),
       ]},
       { label:'開會中', items:[
-        item('確認出席人數符合開會門檻（詳見上方出席門檻計算機）','出席委員未達委員總額1/2，或出席之專家學者未達出席人數1/3，議案不得提付表決（採購評選委員會組織準則第9條）。',['law','calc'],true,'不足法定人數仍進行表決，評選結果無效'),
+        item('出席委員未達委員總額1/2，或出席之專家學者未達2人、或未達出席人數1/3，議案不得提付表決（採購評選委員會組織準則第9條）。',',['law','calc'],true,'不足法定人數仍進行表決，評選結果無效'),
         item('各委員依評分表逐項評分並親自簽名','每位委員均應填寫完整評分表，逐項載明評分並簽名，不得空白或代簽。',['doc'],true,'評分表未簽名或有空白，評選紀錄不完整'),
         item('價格評分：考量品質合理性，不得僅比廠商報價高低','評分應考量「該價格相對於廠商所提供品質的合理性」——此為手冊明列之錯誤態樣（伍、八、（七））。報價低不等於價格評分高。',['warn'],true,'僅比報價高低決定價格分數是違法態樣，稽核必查'),
         item('審查意見具體載明各廠商差異性','評選委員對各廠商之評選意見，不得僅寫「符合」、「尚可」，必須具體比較廠商間在各項目上的差異（採購評選作業檢核表重點）。',['doc','warn'],true,'意見流於形式是114年稽核重點'),
@@ -702,7 +702,7 @@ const phasesB = [
   {
     id:'b5', title:'評選會議', desc:'評選委員會依招標文件評選各廠商，做出評選結果。路線B評選後須辦理議價，不得直接決標。',
     notices:[
-      {type:'law', text:'評選委員會開會，出席委員須達委員總額1/2以上，且出席之專家學者須達出席人數之1/3（採購評選委員會組織準則第9條）。'},
+      {type:'law', text:'評選委員會召開會議時，出席委員須達委員總額1/2以上（至少 ⌈N/2⌉ 人），且出席之專家學者須至少2人，並不得少於出席人數之1/3（採購評選委員會組織準則第9條）。'},
       {type:'warn', text:'評分須考量「該價格相對於廠商所提供品質的合理性」，不得僅以廠商間報價高低決定價格項目得分（最有利標錯誤行為態樣伍、八、（七））。'},
       {type:'info', text:'路線B：評選委員會評定優勝廠商後，後續須辦理議價，不得直接決標。'},
     ],
@@ -1066,28 +1066,43 @@ function renderMeetingModule() {
 }
 
 function calcAttend() {
-  const total = parseInt(document.getElementById('at_total')?.value)||0;
-  const attend = parseInt(document.getElementById('at_attend')?.value)||0;
-  const expert = parseInt(document.getElementById('at_expert')?.value)||0;
+  const total = parseInt(document.getElementById('at_total')?.value) || 0;
+  const attend = parseInt(document.getElementById('at_attend')?.value) || 0;
+  const expert = parseInt(document.getElementById('at_expert')?.value) || 0;
   const checksEl = document.getElementById('at_checks');
   const verdictEl = document.getElementById('at_verdict');
-  if (!checksEl || total===0) return;
+  if (!checksEl || total === 0) return;
 
-  const minAttend = Math.ceil(total / 2);
-  const minExpertOfAttend = attend > 0 ? Math.ceil(attend / 3) : 1;
-  const minExpertAbs = 2;
+  const minAttend = Math.ceil(total / 2);             // 達總額1/2以上（取整）
+  const minExpertOfAttend = Math.ceil(attend / 3);    // 達出席人數1/3以上（取整）
+  const minExpertAbs = 2;                             // 法定絕對下限2人
 
   const checks = [
-    { label:`出席人數 > 委員總額1/2（需 > ${minAttend-1} 人）`, ok: attend > total/2 },
-    { label:`出席之專家學者 ≥ 出席人數1/3（需 ≥ ${minExpertOfAttend} 人）`, ok: expert >= minExpertOfAttend },
-    { label:`出席之專家學者 ≥ 2 人（絕對下限）`, ok: expert >= minExpertAbs },
+    {
+      label: `出席人數 ≥ 委員總額1/2（需 ≥ ${minAttend} 人）`,
+      ok: attend >= minAttend
+    },
+    {
+      label: `出席之專家學者 ≥ 出席人數1/3（需 ≥ ${minExpertOfAttend} 人）`,
+      ok: expert >= minExpertOfAttend
+    },
+    {
+      label: `出席之專家學者 ≥ 2 人（法定絕對下限）`,
+      ok: expert >= minExpertAbs
+    },
   ];
+
   const allOk = checks.every(c => c.ok);
   checksEl.innerHTML = checks.map(c =>
-    `<div class="attend-check-row ${c.ok?'ok':'ng'}"><span class="attend-check-icon">${c.ok?'✅':'❌'}</span><span>${c.label}</span></div>`
+    `<div class="attend-check-row ${c.ok ? 'ok' : 'ng'}">
+      <span class="attend-check-icon">${c.ok ? '✅' : '❌'}</span>
+      <span>${c.label}</span>
+    </div>`
   ).join('');
-  verdictEl.className = `attend-verdict ${allOk?'ok':'ng'}`;
-  verdictEl.textContent = allOk ? '✅ 符合開會門檻，議案可提付表決' : '❌ 不符合開會門檻，議案不得提付表決，應擇期另行召開';
+  verdictEl.className = `attend-verdict ${allOk ? 'ok' : 'ng'}`;
+  verdictEl.textContent = allOk
+    ? '✅ 符合開會門檻，議案可提付表決'
+    : '❌ 不符合開會門檻，議案不得提付表決，應擇期另行召開';
 }
 
 // ── 狀態切換 ──
