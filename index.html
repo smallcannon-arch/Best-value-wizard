@@ -260,18 +260,18 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color:
     <h2 style="font-family:'Noto Serif TC',serif; font-size:1.5rem; color:var(--ink); margin-bottom:8px;">重大採購評選精靈</h2>
     <p style="font-size:0.88rem; color:var(--ink-light); margin-bottom:28px;">請用學校 Google 帳號登入</p>
     <div id="g_id_onload"
-     data-client_id="708047059390-2qhkln2rq34enarpa3ipucukm7bbl97m.apps.googleusercontent.com"
-     data-callback="handleGoogleLogin"
-     data-auto_prompt="false">
-</div>
-<div class="g_id_signin"
-     data-type="standard"
-     data-size="large"
-     data-theme="outline"
-     data-text="sign_in_with"
-     data-shape="rectangular"
-     data-logo_alignment="left">
-</div>
+         data-client_id="708047059390-2qhkln2rq34enarpa3ipucukm7bbl97m.apps.googleusercontent.com"
+         data-callback="handleGoogleLogin"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left">
+    </div>
   </div>
   <div style="font-size:0.72rem;color:var(--ink-light);text-align:center;line-height:2;margin-top:8px;">
     © 2026 內湖國小總務處　開發者：江志宏<br>
@@ -280,7 +280,6 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color:
     best-value-wizard v1　・　適用法規：政府採購法
   </div>
 </div>
-<!-- 頂部 Bar -->
 <div class="topbar">
   <div class="topbar-title">重大採購評選精靈</div>
   <div class="topbar-badge">適用／準用最有利標</div>
@@ -288,7 +287,6 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color:
 </div>
 <div class="progress-bar-wrap"><div class="progress-fill" id="progressFill"></div></div>
 
-<!-- 畫面1：選擇路線 -->
 <div class="screen active" id="routeScreen">
   <div class="route-screen">
     <div class="route-title">選擇採購路線</div>
@@ -332,7 +330,6 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color:
   </div>
 </div>
 
-<!-- 畫面2：流程精靈 -->
 <div class="screen" id="flowScreen">
   <div class="flow-wrap">
     <div class="route-indicator" id="routeIndicator"></div>
@@ -341,7 +338,6 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color:
   </div>
 </div>
 
-<!-- 畫面3：完成 -->
 <div class="screen" id="completeScreen">
   <div class="complete-screen">
     <div class="complete-icon">✅</div>
@@ -386,9 +382,27 @@ function handleGoogleLogin(response) {
     // 隱藏登入遮罩
     document.getElementById('loginScreen').style.display = 'none';
     
-    // （若有需要）載入案件進度或刷新系統列
-    // renderUserTag(); 
-    // loadAllCases();
+    // --- 新增：顯示使用者資訊與登出按鈕 ---
+    const topbar = document.querySelector('.topbar');
+    let userTag = document.getElementById('user-info-tag');
+    if (!userTag) {
+      userTag = document.createElement('div');
+      userTag.id = 'user-info-tag';
+      userTag.style.cssText = 'margin-left: auto; margin-right: 15px; font-size: 0.8rem; display: flex; align-items: center; gap: 10px;';
+      
+      // 調整原本返回按鈕的排版
+      const backBtn = document.querySelector('.topbar-back');
+      if(backBtn) backBtn.style.marginLeft = '0';
+      
+      topbar.insertBefore(userTag, backBtn);
+    }
+    userTag.innerHTML = `
+      👤 ${currentUser.name}
+      <button onclick="logout()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;">登出</button>
+    `;
+
+    // 登入後自動去後端抓資料
+    loadAllCases();
 
   } catch (error) {
     console.error("登入解析失敗:", error);
@@ -1285,8 +1299,31 @@ async function deleteCase(id) {
   if (currentCaseId === id) currentCaseId = null;
   renderCasePanel();
 }
+
+function logout() {
+  if (!confirm('確定要登出並回到登入畫面嗎？')) return;
+  currentUser = null;
+  currentCaseId = null;
+  casesCache = null;
+
+  // 切換回登入畫面
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('routeScreen').style.display = 'none';
+  document.getElementById('flowScreen').style.display = 'none';
+  document.getElementById('floatSaveBtn').style.display = 'none';
+  
+  // 移除使用者標籤
+  const userTag = document.getElementById('user-info-tag');
+  if (userTag) userTag.remove();
+  const backBtn = document.querySelector('.topbar-back');
+  if (backBtn) backBtn.style.marginLeft = 'auto';
+
+  google.accounts.id.disableAutoSelect();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
 </script>
-<!-- 案件管理側邊欄 -->
+
 <button class="case-panel-toggle" onclick="toggleCasePanel()">案件管理</button>
 <button id="floatSaveBtn" onclick="quickSave()">💾 儲存進度</button>
 <div class="case-panel" id="casePanel">
@@ -1302,7 +1339,7 @@ async function deleteCase(id) {
     <button class="btn-case-save" onclick="saveCase()">💾 儲存目前進度</button>
   </div>
 </div>
-  <footer style="text-align:center;padding:32px 20px;font-size:0.75rem;color:var(--ink-light);line-height:2;">
+<footer style="text-align:center;padding:32px 20px;font-size:0.75rem;color:var(--ink-light);line-height:2;">
   © 2026 內湖國小總務處　開發者：江志宏<br>
   系統錯誤通報：smallcannon@nhps.hc.edu.tw<br>
   Tel：03-537-3184轉130<br>
